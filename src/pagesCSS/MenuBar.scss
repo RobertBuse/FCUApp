@@ -1,0 +1,18 @@
+
+.NavigationBar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #2d4496;
+    color: #ffffff;
+    height: 10%;
+}
+
+.SocialTab, .NewsTab, .ShopTab, .HelpTab, .MyAccountTab {
+    justify-content: space-between;
+    align-items: center;
+}
