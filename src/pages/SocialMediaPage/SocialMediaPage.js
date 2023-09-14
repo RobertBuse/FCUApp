@@ -1,73 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import firebase from 'firebase/app';
-import 'firebase/firestore';
-import 'firebase/storage';
-
-// Configurarea Firebase
-const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID',
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-const db = firebase.firestore();
-const storage = firebase.storage();
 
 function SocialMediaPage() {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const addNewPost = async (text, image) => {
-    // Încarcă imaginea în Storage
-    let imageUrl = null;
-    if (image) {
-      const imageRef = storage.ref().child(`images/${Date.now()}-${image.name}`);
-      await imageRef.put(image);
-      imageUrl = await imageRef.getDownloadURL();
-    }
-
-    // Adaugă postul în Firestore
-    const post = { text, image: imageUrl };
-    await db.collection('posts').add(post);
-
-    // Actualizează lista de postări
+  const addNewPost = (text, image) => {
+    const post = { text, image };
     setPosts([...posts, post]);
     setNewPost('');
     setSelectedImage(null);
   };
 
-  const deletePost = async (postId) => {
-    // Șterge postul din Firestore
-    await db.collection('posts').doc(postId).delete();
-
-    // Actualizează lista de postări
-    const updatedPosts = posts.filter((post) => post.id !== postId);
+  const deletePost = (index) => {
+    const updatedPosts = [...posts];
+    updatedPosts.splice(index, 1);
     setPosts(updatedPosts);
   };
 
-  useEffect(() => {
-    // Încarcă postările din Firestore la încărcarea paginii
-    const unsubscribe = db.collection('posts').onSnapshot((snapshot) => {
-      const loadedPosts = [];
-      snapshot.forEach((doc) => {
-        loadedPosts.push({ id: doc.id, ...doc.data() });
-      });
-      setPosts(loadedPosts);
-    });
+  const saveDataToLocalStorage = () => {
+    localStorage.setItem('socialMediaData', JSON.stringify({ posts, newPost }));
+  };
 
-    return () => {
-      // Dezabonează-te de la actualizările Firestore la demontarea componentei
-      unsubscribe();
-    };
+  const loadDataFromLocalStorage = () => {
+    const storedData = localStorage.getItem('socialMediaData');
+    if (storedData) {
+      const { posts: storedPosts, newPost: storedNewPost } = JSON.parse(storedData);
+      setPosts(storedPosts);
+      setNewPost(storedNewPost);
+    }
+  };
+
+  useEffect(() => {
+    loadDataFromLocalStorage();
   }, []);
+
+  useEffect(() => {
+    saveDataToLocalStorage();
+  }, [posts, newPost]);
 
   const handleAddPost = () => {
     if (newPost.trim() !== '') {
@@ -77,7 +47,7 @@ function SocialMediaPage() {
 
   const handleImageChange = (event) => {
     const file = event.target.files[0];
-    setSelectedImage(file);
+    setSelectedImage(URL.createObjectURL(file));
   };
 
   return (
@@ -104,7 +74,7 @@ function SocialMediaPage() {
       {selectedImage && (
         <div className="mb-3">
           <img
-            src={URL.createObjectURL(selectedImage)}
+            src={selectedImage}
             alt="Imagine selectată"
             style={{ maxWidth: '100%', maxHeight: '200px' }}
           />
@@ -118,8 +88,8 @@ function SocialMediaPage() {
       <hr />
 
       <div>
-        {posts.map((post) => (
-          <div className="card mb-3" key={post.id}>
+        {posts.map((post, index) => (
+          <div className="card mb-3" key={index}>
             <div className="card-body">
               <p>{post.text}</p>
               {post.image && (
@@ -131,7 +101,7 @@ function SocialMediaPage() {
               )}
               <button
                 className="btn btn-danger"
-                onClick={() => deletePost(post.id)}
+                onClick={() => deletePost(index)}
               >
                 Șterge
               </button>
