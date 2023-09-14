@@ -1,12 +1,37 @@
 import React, { useState, useEffect } from 'react';
+import firebase from 'firebase/app';
+import 'firebase/storage';
+
+const firebaseConfig = {
+  // Configurațiile Firebase aici
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const storage = firebase.storage();
 
 function SocialMediaPage() {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const addNewPost = (text, image) => {
-    const post = { text, image };
+  const addNewPost = async (text, image) => {
+    // Încarcă imaginea în Firebase Storage
+    let imageUrl = null;
+    if (image) {
+      const imageRef = storage.ref().child(`images/${Date.now()}-${image.name}`);
+      await imageRef.put(image);
+      imageUrl = await imageRef.getDownloadURL();
+    }
+
+    // Adaugă postul în starea locală sau în baza de date Firebase
+    const post = { text, image: imageUrl };
+
+    // Aici poți decide dacă dorești să utilizezi Firebase Realtime Database sau altă bază de date pentru a stoca posturile.
+
+    // Actualizează lista de postări
     setPosts([...posts, post]);
     setNewPost('');
     setSelectedImage(null);
